@@ -16,10 +16,13 @@
 import collectd
 import json
 import urllib2
+import base64
 
 PREFIX = "marathon"
 MARATHON_HOST = "localhost"
 MARATHON_PORT = 8080
+MARATHON_USER = None
+MARATHON_PASS = None
 MARATHON_URL = ""
 VERBOSE_LOGGING = False
 
@@ -27,11 +30,16 @@ VERBOSE_LOGGING = False
 def configure_callback(conf):
     """Received configuration information"""
     global MARATHON_HOST, MARATHON_PORT, MARATHON_URL, VERBOSE_LOGGING
+    global MARATHON_USER, MARATHON_PASS
     for node in conf.children:
         if node.key == 'Host':
             MARATHON_HOST = node.values[0]
         elif node.key == 'Port':
             MARATHON_PORT = int(node.values[0])
+        elif node.key == 'User':
+            MARATHON_USER = node.values[0]
+        elif node.key == 'Pass':
+            MARATHON_PASS = node.values[0]
         elif node.key == 'Verbose':
             VERBOSE_LOGGING = bool(node.values[0])
         else:
@@ -46,7 +54,11 @@ def read_callback():
     """Parse stats response from Marathon"""
     log_verbose('Read callback called')
     try:
-        metrics = json.load(urllib2.urlopen(MARATHON_URL, timeout=10))
+        request = urllib2.Request(MARATHON_URL)
+        if MARATHON_USER is not None:
+	    base64string = base64.encodestring('%s:%s' % (MARATHON_USER, MARATHON_PASS)).replace('\n', '')
+	    request.add_header("Authorization", "Basic %s" % base64string)
+	metrics = json.load(urllib2.urlopen(request, timeout=10))
 
         for group in ['gauges', 'histograms', 'meters', 'timers', 'counters']:
             for name,values in metrics.get(group, {}).items():
