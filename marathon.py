@@ -24,6 +24,7 @@ MARATHON_PORT = 8080
 MARATHON_USER = None
 MARATHON_PASS = None
 MARATHON_URL = ""
+CLEAN_METRICS = False
 VERBOSE_LOGGING = False
 
 
@@ -31,6 +32,7 @@ def configure_callback(conf):
     """Received configuration information"""
     global MARATHON_HOST, MARATHON_PORT, MARATHON_URL, VERBOSE_LOGGING
     global MARATHON_USER, MARATHON_PASS
+    global CLEAN_METRICS
     for node in conf.children:
         if node.key == 'Host':
             MARATHON_HOST = node.values[0]
@@ -40,6 +42,8 @@ def configure_callback(conf):
             MARATHON_USER = node.values[0]
         elif node.key == 'Pass':
             MARATHON_PASS = node.values[0]
+        elif node.key == 'CleanMetrics':
+            CLEAN_METRICS = bool(node.values[0])
         elif node.key == 'Verbose':
             VERBOSE_LOGGING = bool(node.values[0])
         else:
@@ -78,6 +82,8 @@ def dispatch_stat(type, name, value):
 
     val = collectd.Values(plugin='marathon')
     val.type = type
+    if CLEAN_METRICS:
+	name = name.replace('mesosphere.marathon.', '')
     val.type_instance = name
     val.values = [value]
     # https://github.com/collectd/collectd/issues/716
