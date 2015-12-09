@@ -83,7 +83,10 @@ def dispatch_stat(type, name, value):
     val = collectd.Values(plugin='marathon')
     val.type = type
     if CLEAN_METRICS:
-	name = name.replace('mesosphere.marathon.', '')
+        name = name.replace('mesosphere.marathon.', '')
+        name_parts = name.split('.')
+        name_parts.reverse()
+        name = ".".join(name_parts)
     val.type_instance = name
     val.values = [value]
     # https://github.com/collectd/collectd/issues/716
